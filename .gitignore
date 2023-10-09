@@ -7,3 +7,6 @@
 data/*
 logs/*
 .idea
+TOKEN
+experiments/
+cache/
