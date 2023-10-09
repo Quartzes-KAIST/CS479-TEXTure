@@ -46,6 +46,11 @@ and Kaolin
 pip install kaolin==0.11.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/{TORCH_VER}_{CUDA_VER}.html
 ```
 
+The remaining dependencies are the ones related to PyTorch and they can be installed with the command:
+```
+pip install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+```
+
 Note that you also need a :hugs: token for StableDiffusion. 
 First accept conditions for the model you want to use, default one is [`stabilityai/stable-diffusion-2-depth`]( https://huggingface.co/stabilityai/stable-diffusion-2-depth). Then, add a TOKEN file [access token](https://huggingface.co/settings/tokens) to the root folder of this project, or use the `huggingface-cli login` command
 
