@@ -1,0 +1,8 @@
+log:
+  exp_name: cat
+guide:
+  text: "A black cat, {} view"
+  append_direction: True
+  shape_path: shapes/cat.obj
+optim:
+  seed: 3

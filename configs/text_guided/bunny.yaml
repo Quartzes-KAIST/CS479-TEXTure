@@ -1,0 +1,8 @@
+log:
+  exp_name: bunny
+guide:
+  text: "A white bunny, {} view"
+  append_direction: True
+  shape_path: shapes/bunny.obj
+optim:
+  seed: 3
