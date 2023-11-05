@@ -8,7 +8,7 @@ from tqdm import tqdm
 import cv2
 import numpy as np
 
-data_module = AFHQDataModule("/home/juil/workspace/23summer_tutorial/HelloScore/image_diffusion/data/", 32, 4, -1, 256, 0)
+data_module = AFHQDataModule("data/afhq", 32, 4, -1, 256, 0)
 
 train_dl = data_module.train_dataloader()
 val_dl = data_module.val_dataloader()
