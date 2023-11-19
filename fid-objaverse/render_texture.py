@@ -21,13 +21,15 @@ def get_objaverse_subset():
 
 def get_file_list(base_path):
 	file_list = []
+	id_result = []
 	
 	dir_list = os.listdir(base_path)
 	
 	for dir in dir_list:
 		file_list.append(base_path + "/" + dir + "/mesh/mesh.obj")
+		id_result.append(dir)
 			
-	return file_list
+	return file_list, id_result
 
 def generate_gif(source_dir:str, prefix:str, postfix:str, save_dir:str):
 	img_list = os.listdir(source_dir)
@@ -50,7 +52,7 @@ def generate_gif(source_dir:str, prefix:str, postfix:str, save_dir:str):
 	
 
 base_path = f'/root/CS479-TEXTure/experiments'
-render_list = get_file_list(base_path)
+render_list, id_result = get_file_list(base_path)
 
 pyglet.options["headless"] = True
 
@@ -94,17 +96,10 @@ def render_qualitative_results():
 
 # render quantitative results
 def render_quantitative_results():
-	for obj_path in render_list:
-		test_dir = '/root/.objaverse/hf-objaverse-v1/texture_tests' + obj_path[len(base_path):-14]
+	test_dir = '/root/.objaverse/hf-objaverse-v1/texture_tests/'
+	os.makedirs(test_dir, exist_ok=True)
 
-		print(test_dir)
-
-		if os.path.exists(test_dir):
-			print(f'{test_dir} Exists. Skipping')
-			continue
-
-		os.makedirs(test_dir, exist_ok=True)
-
+	for idx, obj_path in enumerate(render_list):
 		scene = trimesh.load(obj_path, force='mesh')
 		window_conf = gl.Config(double_buffer=True, depth_size=6)
 
@@ -116,7 +111,7 @@ def render_quantitative_results():
 			png = scene.scene().save_image(resolution=[500, 500], visible=True, window_conf=window_conf)
 
 			image = Image.open(io.BytesIO(png))
-			im1 = image.save(os.path.join(test_dir, f'{i:02}.png'))
+			im1 = image.save(os.path.join(test_dir, f'{id_result[idx]}_{i:02}.png'))
 
 if __name__ == "__main__":
     # render_qualitative_results() # takes long time
