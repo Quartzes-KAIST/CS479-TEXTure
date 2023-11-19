@@ -1,0 +1,5 @@
+/root/.objaverse/hf-objaverse-v1/objs/000-042/ee7660359dda4c90990cb7440211b873/guide.yaml
+/root/.objaverse/hf-objaverse-v1/objs/000-155/3e5393bd35e34531a576e22d45611060/guide.yaml
+/root/.objaverse/hf-objaverse-v1/objs/000-139/dbf0dbcf4229429088b0a984e8f05666/guide.yaml
+/root/.objaverse/hf-objaverse-v1/objs/000-051/f5bf29193be44caaad2df1db3db44871/guide.yaml
+/root/.objaverse/hf-objaverse-v1/objs/000-000/00a66884dacb498b85701acd1cc77c5e/guide.yaml

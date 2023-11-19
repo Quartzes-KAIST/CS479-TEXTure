@@ -12,7 +12,8 @@ def get_objaverse_subset():
 	return subset_list
 
 def get_data_list(base_path):
-	data_list = [] # guide_path, id, name, object_path
+	data_list = [] # guide_path, id, name, object_path\
+	guide_list = []
 	
 	dir_list = os.listdir(base_path)
 	objaverse_subset = get_objaverse_subset()
@@ -25,11 +26,12 @@ def get_data_list(base_path):
 			guide_path = base_path + "/" + dir + "/" + id + "/guide.yaml"
 			object_path = base_path + "/" + dir + "/" + id + "/object.obj"
 			data_list.append([guide_path, id, name, object_path])
+			guide_list.append(guide_path)
 			
-	return data_list
+	return data_list, guide_list
 
 base_path = f'/root/.objaverse/hf-objaverse-v1/objs'
-data_list = get_data_list(base_path)
+data_list, guide_list = get_data_list(base_path)
 
 for data in data_list:
 	guide_path = data[0]
@@ -45,3 +47,9 @@ for data in data_list:
 
 	with open(guide_path, 'x') as file:
 		yaml.dump(yaml_data, file)
+		
+if os.path.exists('./fid-objaverse/guide_list.txt'):
+    print(f'{guide_path} Exists. Skipping')
+
+with open('./fid-objaverse/guide_list.txt', 'x') as file:
+	file.write('\n'.join(guide_list))
