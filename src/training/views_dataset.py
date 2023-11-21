@@ -182,3 +182,20 @@ class ViewsDataset:
                             num_workers=0)
         loader._data = self  # an ugly fix... we need to access dataset in trainer.
         return loader
+
+
+class RandomViewDataset:
+    def __init__(self, cfg: RenderConfig, device):
+        super().__init__()
+
+        self.cfg = cfg
+        self.device = device
+    
+    def generate(self, size):
+        dirs, thetas, phis, radius = rand_poses(size, self.device, 
+                                                radius_range=(self.cfg.radius, self.cfg.radius), 
+                                                theta_range=(0.0, 150.0), 
+                                                phi_range=(0.0, 360.0), 
+                                                angle_overhead=30.0, angle_front=60.0, biased_angles=True)
+        
+        return dirs, thetas, phis, radius
