@@ -19,7 +19,7 @@ from src import utils
 from src.configs.train_config import TrainConfig
 from src.models.textured_mesh import TexturedMeshModel
 from src.stable_diffusion_depth import StableDiffusion
-from src.training.views_dataset import ViewsDataset, MultiviewDataset
+from src.training.views_dataset import ViewsDataset, MultiviewDataset, RandomviewDataset
 from src.utils import make_path, tensor2numpy
 
 
@@ -46,6 +46,7 @@ class TEXTure:
         self.diffusion = self.init_diffusion()
         self.text_z, self.text_string = self.calc_text_embeddings()
         self.dataloaders = self.init_dataloaders()
+        self.random_view_generator = RandomviewDataset(self.cfg.render, device=self.device)
         self.back_im = torch.Tensor(np.array(Image.open(self.cfg.guide.background_img).convert('RGB'))).to(
             self.device).permute(2, 0,
                                  1) / 255.0
@@ -228,6 +229,23 @@ class TEXTure:
                                                                         mask=outputs['mask'])
         
         return torch.sum(generate_mask).item()
+
+    def get_max_masked_viewpoint(self, size):
+        dirs, thetas, phis, radius = self.random_view_generator.generate(size)
+
+        max_masked_viewpoint = {'dir': 0, 'theta': 0, 'phi': 0, 'radius': 0}
+        max_mask_size = 0
+
+        for i in range(size):
+            mask_size = self.calculate_mask_size(dirs[i], thetas[i], phis[i], radius[i])
+
+            if max_mask_size < mask_size:
+                max_masked_viewpoint['dir'] = dirs[i]
+                max_masked_viewpoint['theta'] = thetas[i]
+                max_masked_viewpoint['phi'] = phis[i]
+                max_masked_viewpoint['radius'] = radius[i]
+        
+        return max_masked_viewpoint
 
     def paint_viewpoint(self, data: Dict[str, Any]):
         logger.info(f'--- Painting step #{self.paint_step} ---')

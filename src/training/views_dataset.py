@@ -184,7 +184,7 @@ class ViewsDataset:
         return loader
 
 
-class RandomViewDataset:
+class RandomviewDataset:
     def __init__(self, cfg: RenderConfig, device):
         super().__init__()
 
