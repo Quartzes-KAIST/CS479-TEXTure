@@ -188,6 +188,46 @@ class TEXTure:
             self.mesh_model.export_mesh(save_path)
 
             logger.info(f"\tDone!")
+    
+    def calculate_mask_size(self, theta, phi, radius):
+        # If offset of phi was set from code
+        phi = phi - np.deg2rad(self.cfg.render.front_offset)
+        phi = float(phi + 2 * np.pi if phi < 0 else phi)
+
+        # Set background image
+        if self.cfg.guide.use_background_color:
+            background = torch.Tensor([0, 0.8, 0]).to(self.device)
+        else:
+            background = F.interpolate(self.back_im.unsqueeze(0),
+                                    (self.cfg.render.train_grid_size, self.cfg.render.train_grid_size),
+                                    mode='bilinear', align_corners=False)
+
+        # Render from viewpoint
+        outputs = self.mesh_model.render(theta=theta, phi=phi, radius=radius, background=background)
+        render_cache = outputs['render_cache']
+        rgb_render_raw = outputs['image']  # Render where missing values have special color
+        depth_render = outputs['depth']
+
+        # Render again with the median value to use as rgb, we shouldn't have color leakage, but just in case
+        outputs = self.mesh_model.render(background=background,
+                                        render_cache=render_cache, use_median=self.paint_step > 1)
+
+        # Render meta texture map
+        meta_output = self.mesh_model.render(background=torch.Tensor([0, 0, 0]).to(self.device),
+                                            use_meta_texture=True, render_cache=render_cache)
+
+        z_normals = outputs['normals'][:, -1:, :, :].clamp(0, 1)
+        z_normals_cache = meta_output['image'].clamp(0, 1)
+        edited_mask = meta_output['image'].clamp(0, 1)[:, 1:2]
+
+        update_mask, generate_mask, refine_mask = self.calculate_trimap(rgb_render_raw=rgb_render_raw,
+                                                                        depth_render=depth_render,
+                                                                        z_normals=z_normals,
+                                                                        z_normals_cache=z_normals_cache,
+                                                                        edited_mask=edited_mask,
+                                                                        mask=outputs['mask'])
+        
+        return torch.sum(generate_mask).item()
 
     def paint_viewpoint(self, data: Dict[str, Any]):
         logger.info(f'--- Painting step #{self.paint_step} ---')
