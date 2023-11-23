@@ -31,6 +31,9 @@ class TEXTure:
 
         utils.seed_everything(self.cfg.optim.seed)
 
+        self.rand_viewpoint_size = 20
+        self.rand_iter_size = 8
+
         # Make view_dirs
         self.exp_path = make_path(self.cfg.log.exp_dir)
         self.ckpt_path = make_path(self.exp_path / 'checkpoints')
@@ -46,7 +49,6 @@ class TEXTure:
         self.diffusion = self.init_diffusion()
         self.text_z, self.text_string = self.calc_text_embeddings()
         self.dataloaders = self.init_dataloaders()
-        self.random_view_generator = RandomviewDataset(self.cfg.render, device=self.device)
         self.back_im = torch.Tensor(np.array(Image.open(self.cfg.guide.background_img).convert('RGB'))).to(
             self.device).permute(2, 0,
                                  1) / 255.0
@@ -101,14 +103,15 @@ class TEXTure:
 
     def init_dataloaders(self) -> Dict[str, DataLoader]:
         init_train_dataloader = MultiviewDataset(self.cfg.render, device=self.device).dataloader()
-
+        rand_dataloader = RandomviewDataset(self.cfg.render, device=self.device, 
+                                            size=self.rand_viewpoint_size*self.rand_iter_size)
         val_loader = ViewsDataset(self.cfg.render, device=self.device,
                                   size=self.cfg.log.eval_size).dataloader()
         # Will be used for creating the final video
         val_large_loader = ViewsDataset(self.cfg.render, device=self.device,
                                         size=self.cfg.log.full_eval_size).dataloader()
         dataloaders = {'train': init_train_dataloader, 'val': val_loader,
-                       'val_large': val_large_loader}
+                       'val_large': val_large_loader, 'rand': rand_dataloader}
         return dataloaders
 
     def init_logger(self):
@@ -230,20 +233,30 @@ class TEXTure:
         
         return torch.sum(generate_mask).item()
 
-    def get_max_masked_viewpoint(self, size):
-        dirs, thetas, phis, radius = self.random_view_generator.generate(size)
+    def get_max_masked_viewpoint(self, iteration_count):
+        start_count = iteration_count * self.rand_viewpoint_size
+        end_count = (iteration_count + 1) * self.rand_viewpoint_size
 
         max_masked_viewpoint = {'dir': 0, 'theta': 0, 'phi': 0, 'radius': 0}
         max_mask_size = 0
 
-        for i in range(size):
-            mask_size = self.calculate_mask_size(dirs[i], thetas[i], phis[i], radius[i])
+        for idx in range(start_count, end_count):
+            data = self.dataloaders['rand'][idx]
+
+            dir = data['dir']
+            theta = data['theta']
+            phi = data['phi']
+            radius = data['radius']
+
+            mask_size = self.calculate_mask_size(theta, phi, radius)
 
             if max_mask_size < mask_size:
-                max_masked_viewpoint['dir'] = dirs[i]
-                max_masked_viewpoint['theta'] = thetas[i]
-                max_masked_viewpoint['phi'] = phis[i]
-                max_masked_viewpoint['radius'] = radius[i]
+                max_masked_viewpoint['dir'] = dir
+                max_masked_viewpoint['theta'] = theta
+                max_masked_viewpoint['phi'] = phi
+                max_masked_viewpoint['radius'] = radius
+
+                max_mask_size = mask_size
         
         return max_masked_viewpoint
 
@@ -254,6 +267,9 @@ class TEXTure:
         phi = phi - np.deg2rad(self.cfg.render.front_offset)
         phi = float(phi + 2 * np.pi if phi < 0 else phi)
         logger.info(f'Painting from theta: {theta}, phi: {phi}, radius: {radius}')
+
+        if self.paint_step < 8:
+            self.get_max_masked_viewpoint(self.paint_step)
 
         # Set background image
         if self.cfg.guide.use_background_color:

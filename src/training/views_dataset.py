@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from src.configs.train_config import RenderConfig
 from src.utils import get_view_direction
@@ -41,7 +41,7 @@ def rand_poses(size, device, radius_range=(1.0, 1.5), theta_range=(0.0, 150.0), 
 
     dirs = get_view_direction(thetas, phis, angle_overhead, angle_front)
 
-    return dirs, thetas.item(), phis.item(), radius.item()
+    return dirs, thetas, phis, radius
 
 
 def rand_modal_poses(size, device, radius_range=(1.4, 1.6), theta_range=(45.0, 90.0), phi_range=(0.0, 360.0),
@@ -184,18 +184,34 @@ class ViewsDataset:
         return loader
 
 
-class RandomviewDataset:
-    def __init__(self, cfg: RenderConfig, device):
+class RandomviewDataset(Dataset):
+    def __init__(self, cfg: RenderConfig, device, size):
         super().__init__()
 
         self.cfg = cfg
         self.device = device
-    
-    def generate(self, size):
-        dirs, thetas, phis, radius = rand_poses(size, self.device, 
+        self.size = size
+
+        self.dirs, self.thetas, self.phis, self.radius = self.collate()
+
+    def collate(self):
+        dirs, thetas, phis, radius = rand_poses(self.size, self.device, 
                                                 radius_range=(self.cfg.radius, self.cfg.radius), 
-                                                theta_range=(0.0, 150.0), 
+                                                theta_range=(0.0, 180.0), 
                                                 phi_range=(0.0, 360.0), 
                                                 angle_overhead=30.0, angle_front=60.0, biased_angles=True)
-        
+
         return dirs, thetas, phis, radius
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, idx):
+        data = {
+            'dir': self.dirs[idx],
+            'theta': self.thetas[idx],
+            'phi': self.phis[idx],
+            'radius': self.radius[idx]
+        }
+
+        return data
