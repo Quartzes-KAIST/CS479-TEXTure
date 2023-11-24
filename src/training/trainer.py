@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, Union, List
 
+import time
 import cv2
 import einops
 import imageio
@@ -129,14 +130,20 @@ class TEXTure:
         pbar = tqdm(total=len(self.dataloaders['train']), initial=self.paint_step,
                     bar_format='{desc}: {percentage:3.0f}% painting step {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
 
+        start_time = time.time()
+
         for data in self.dataloaders['train']:
             self.paint_step += 1
             pbar.update(1)
             self.paint_viewpoint(data)
             self.evaluate(self.dataloaders['val'], self.eval_renders_path)
             self.mesh_model.train()
+        
+        end_time = time.time()
 
         self.mesh_model.change_default_to_median()
+        logger.info(f'Execution time: {end_time - start_time}')
+        logger.info(f'Average iteration time: {(end_time - start_time) / self.paint_step}')
         logger.info('Finished Painting ^_^')
         logger.info('Saving the last result...')
         self.full_eval()
@@ -150,6 +157,8 @@ class TEXTure:
 
         pbar = tqdm(total=self.rand_iter_size, initial=self.paint_step,
                     bar_format='{desc}: {percentage:3.0f}% painting step {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+        
+        start_time = time.time()
 
         for i in range(self.rand_iter_size):
             self.paint_step += 1
@@ -158,7 +167,11 @@ class TEXTure:
             self.evaluate(self.dataloaders['val'], self.eval_renders_path)
             self.mesh_model.train()
 
+        end_time = time.time()
+
         self.mesh_model.change_default_to_median()
+        logger.info(f'Execution time: {end_time - start_time}')
+        logger.info(f'Average iteration time: {(end_time - start_time) / self.paint_step}')
         logger.info('Finished Painting ^_^')
         logger.info('Saving the last result...')
         self.full_eval()
