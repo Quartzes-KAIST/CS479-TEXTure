@@ -8,6 +8,10 @@ import math
 from PIL import Image
 from pyglet import gl
 
+pyglet.options["headless"] = True
+
+DOWNLOAD_PATH = f'/root/.objaverse/hf-objaverse-v1/objs'
+TEST_PATH = f'/root/.objaverse/hf-objaverse-v1/obj_tests/'
 
 def get_objaverse_subset():
 	subset_list = dict()
@@ -55,17 +59,12 @@ def generate_gif(source_dir:str, prefix:str, postfix:str, save_dir:str):
 	
 	im = images[0]
 	im.save(os.path.join(save_dir, 'out.gif'), save_all=True, append_images=images[1:],loop=0xff, duration=500)
-	
 
-base_path = f'/root/.objaverse/hf-objaverse-v1/objs'
-render_list, name_list, id_result = get_file_list(base_path)
-
-pyglet.options["headless"] = True
-
-# render qualitative results
 def render_qualitative_results():
+	render_list, name_list, id_result = get_file_list(DOWNLOAD_PATH)
+
 	for obj_path in render_list:
-		save_dir = '/root/.objaverse/hf-objaverse-v1/obj_renders/' + obj_path[len(base_path):-11]
+		save_dir = '/root/.objaverse/hf-objaverse-v1/obj_renders/' + obj_path[len(DOWNLOAD_PATH):-11]
 
 		print(save_dir)
 
@@ -95,17 +94,19 @@ def render_qualitative_results():
 			png = scene.scene().save_image(resolution=[1920, 1080], visible=True, window_conf=window_conf)
 
 			image = Image.open(io.BytesIO(png))
-			im1 = image.save(os.path.join(gif_dir, f'{i:02}.png'))
+			image.save(os.path.join(gif_dir, f'{i:02}.png'))
 
 		# Generated animaged gif using results (rotating encompassing views)
 		generate_gif(gif_dir, '', '', save_dir)
 
-# render quantitative results
 def render_quantitative_results():
-	test_dir = '/root/.objaverse/hf-objaverse-v1/obj_tests/'
-	os.makedirs(test_dir, exist_ok=True)
+	render_list, name_list, id_result = get_file_list(DOWNLOAD_PATH)
+
+	os.makedirs(TEST_PATH, exist_ok=True)
 
 	for idx, obj_path in enumerate(render_list):
+		print(f'[{idx + 1}/{len(render_list)}] Now rendering images for fid evaluation')
+
 		scene = trimesh.load(obj_path, force='mesh')
 		window_conf = gl.Config(double_buffer=True, depth_size=6)
 
@@ -117,7 +118,7 @@ def render_quantitative_results():
 			png = scene.scene().save_image(resolution=[500, 500], visible=True, window_conf=window_conf)
 
 			image = Image.open(io.BytesIO(png))
-			im1 = image.save(os.path.join(test_dir, f'{id_result[idx]}_{i:02}.png'))
+			image.save(os.path.join(TEST_PATH, f'{id_result[idx]}_{i:02}.png'))
 
 if __name__ == "__main__":
     # render_qualitative_results() # takes long time
