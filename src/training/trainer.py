@@ -31,7 +31,7 @@ class TEXTure:
 
         utils.seed_everything(self.cfg.optim.seed)
 
-        self.rand_viewpoint_size = 10
+        self.rand_viewpoint_size = 20
         self.rand_iter_size = 6
 
         # Make view_dirs

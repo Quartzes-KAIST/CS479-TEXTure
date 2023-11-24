@@ -70,7 +70,7 @@ class GuideConfig:
     # Some more strict masking for projecting back
     strict_projection: bool = True
     # Render with random viewpoints
-    use_random_viewpoint: bool = True
+    use_random_viewpoint: bool = False
 
 
 @dataclass
