@@ -31,8 +31,8 @@ class TEXTure:
 
         utils.seed_everything(self.cfg.optim.seed)
 
-        self.rand_viewpoint_size = 20
-        self.rand_iter_size = 8
+        self.rand_viewpoint_size = 10
+        self.rand_iter_size = 6
 
         # Make view_dirs
         self.exp_path = make_path(self.cfg.log.exp_dir)
@@ -141,6 +141,28 @@ class TEXTure:
         logger.info('Saving the last result...')
         self.full_eval()
         logger.info('\tDone!')
+    
+    def paint_rand(self):
+        logger.info('Starting training ^_^')
+        # Evaluate the initialization
+        self.evaluate(self.dataloaders['val'], self.eval_renders_path)
+        self.mesh_model.train()
+
+        pbar = tqdm(total=self.rand_iter_size, initial=self.paint_step,
+                    bar_format='{desc}: {percentage:3.0f}% painting step {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+
+        for i in range(self.rand_iter_size):
+            self.paint_step += 1
+            pbar.update(1)
+            self.paint_viewpoint(self.get_max_masked_viewpoint())
+            self.evaluate(self.dataloaders['val'], self.eval_renders_path)
+            self.mesh_model.train()
+
+        self.mesh_model.change_default_to_median()
+        logger.info('Finished Painting ^_^')
+        logger.info('Saving the last result...')
+        self.full_eval()
+        logger.info('\tDone!')
 
     def evaluate(self, dataloader: DataLoader, save_path: Path, save_as_video: bool = False):
         logger.info(f'Evaluating and saving model, painting iteration #{self.paint_step}...')
@@ -233,9 +255,9 @@ class TEXTure:
         
         return torch.sum(generate_mask).item()
 
-    def get_max_masked_viewpoint(self, iteration_count):
-        start_count = iteration_count * self.rand_viewpoint_size
-        end_count = (iteration_count + 1) * self.rand_viewpoint_size
+    def get_max_masked_viewpoint(self):
+        start_count = (self.paint_step - 1) * self.rand_viewpoint_size
+        end_count = self.paint_step * self.rand_viewpoint_size
 
         max_masked_viewpoint = {'dir': 0, 'theta': 0, 'phi': 0, 'radius': 0}
         max_mask_size = 0
@@ -267,9 +289,6 @@ class TEXTure:
         phi = phi - np.deg2rad(self.cfg.render.front_offset)
         phi = float(phi + 2 * np.pi if phi < 0 else phi)
         logger.info(f'Painting from theta: {theta}, phi: {phi}, radius: {radius}')
-
-        if self.paint_step < 8:
-            self.get_max_masked_viewpoint(self.paint_step)
 
         # Set background image
         if self.cfg.guide.use_background_color:

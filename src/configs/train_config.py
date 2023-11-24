@@ -69,6 +69,8 @@ class GuideConfig:
     z_update_thr: float = 0.2
     # Some more strict masking for projecting back
     strict_projection: bool = True
+    # Render with random viewpoints
+    use_random_viewpoint: bool = True
 
 
 @dataclass

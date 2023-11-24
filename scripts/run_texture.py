@@ -9,6 +9,8 @@ def main(cfg: TrainConfig):
     trainer = TEXTure(cfg)
     if cfg.log.eval_only:
         trainer.full_eval()
+    elif cfg.guide.use_random_viewpoint:
+        trainer.paint_rand()
     else:
         trainer.paint()
 
