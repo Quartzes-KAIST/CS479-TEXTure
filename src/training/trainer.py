@@ -19,7 +19,7 @@ from src import utils
 from src.configs.train_config import TrainConfig
 from src.models.textured_mesh import TexturedMeshModel
 from src.stable_diffusion_depth import StableDiffusion
-from src.training.views_dataset import ViewsDataset, MultiviewDataset
+from src.training.views_dataset import ViewsDataset, MultiviewDataset, RandomviewDataset
 from src.utils import make_path, tensor2numpy
 
 
@@ -30,6 +30,9 @@ class TEXTure:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         utils.seed_everything(self.cfg.optim.seed)
+
+        self.rand_viewpoint_size = 20
+        self.rand_iter_size = 6
 
         # Make view_dirs
         self.exp_path = make_path(self.cfg.log.exp_dir)
@@ -100,14 +103,15 @@ class TEXTure:
 
     def init_dataloaders(self) -> Dict[str, DataLoader]:
         init_train_dataloader = MultiviewDataset(self.cfg.render, device=self.device).dataloader()
-
+        rand_dataloader = RandomviewDataset(self.cfg.render, device=self.device, 
+                                            size=self.rand_viewpoint_size*self.rand_iter_size)
         val_loader = ViewsDataset(self.cfg.render, device=self.device,
                                   size=self.cfg.log.eval_size).dataloader()
         # Will be used for creating the final video
         val_large_loader = ViewsDataset(self.cfg.render, device=self.device,
                                         size=self.cfg.log.full_eval_size).dataloader()
         dataloaders = {'train': init_train_dataloader, 'val': val_loader,
-                       'val_large': val_large_loader}
+                       'val_large': val_large_loader, 'rand': rand_dataloader}
         return dataloaders
 
     def init_logger(self):
@@ -129,6 +133,28 @@ class TEXTure:
             self.paint_step += 1
             pbar.update(1)
             self.paint_viewpoint(data)
+            self.evaluate(self.dataloaders['val'], self.eval_renders_path)
+            self.mesh_model.train()
+
+        self.mesh_model.change_default_to_median()
+        logger.info('Finished Painting ^_^')
+        logger.info('Saving the last result...')
+        self.full_eval()
+        logger.info('\tDone!')
+    
+    def paint_rand(self):
+        logger.info('Starting training ^_^')
+        # Evaluate the initialization
+        self.evaluate(self.dataloaders['val'], self.eval_renders_path)
+        self.mesh_model.train()
+
+        pbar = tqdm(total=self.rand_iter_size, initial=self.paint_step,
+                    bar_format='{desc}: {percentage:3.0f}% painting step {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+
+        for i in range(self.rand_iter_size):
+            self.paint_step += 1
+            pbar.update(1)
+            self.paint_viewpoint(self.get_max_masked_viewpoint())
             self.evaluate(self.dataloaders['val'], self.eval_renders_path)
             self.mesh_model.train()
 
@@ -188,6 +214,73 @@ class TEXTure:
             self.mesh_model.export_mesh(save_path)
 
             logger.info(f"\tDone!")
+    
+    def calculate_mask_size(self, theta, phi, radius):
+        # If offset of phi was set from code
+        phi = phi - np.deg2rad(self.cfg.render.front_offset)
+        phi = float(phi + 2 * np.pi if phi < 0 else phi)
+
+        # Set background image
+        if self.cfg.guide.use_background_color:
+            background = torch.Tensor([0, 0.8, 0]).to(self.device)
+        else:
+            background = F.interpolate(self.back_im.unsqueeze(0),
+                                    (self.cfg.render.train_grid_size, self.cfg.render.train_grid_size),
+                                    mode='bilinear', align_corners=False)
+
+        # Render from viewpoint
+        outputs = self.mesh_model.render(theta=theta, phi=phi, radius=radius, background=background)
+        render_cache = outputs['render_cache']
+        rgb_render_raw = outputs['image']  # Render where missing values have special color
+        depth_render = outputs['depth']
+
+        # Render again with the median value to use as rgb, we shouldn't have color leakage, but just in case
+        outputs = self.mesh_model.render(background=background,
+                                        render_cache=render_cache, use_median=self.paint_step > 1)
+
+        # Render meta texture map
+        meta_output = self.mesh_model.render(background=torch.Tensor([0, 0, 0]).to(self.device),
+                                            use_meta_texture=True, render_cache=render_cache)
+
+        z_normals = outputs['normals'][:, -1:, :, :].clamp(0, 1)
+        z_normals_cache = meta_output['image'].clamp(0, 1)
+        edited_mask = meta_output['image'].clamp(0, 1)[:, 1:2]
+
+        update_mask, generate_mask, refine_mask = self.calculate_trimap(rgb_render_raw=rgb_render_raw,
+                                                                        depth_render=depth_render,
+                                                                        z_normals=z_normals,
+                                                                        z_normals_cache=z_normals_cache,
+                                                                        edited_mask=edited_mask,
+                                                                        mask=outputs['mask'])
+        
+        return torch.sum(generate_mask).item()
+
+    def get_max_masked_viewpoint(self):
+        start_count = (self.paint_step - 1) * self.rand_viewpoint_size
+        end_count = self.paint_step * self.rand_viewpoint_size
+
+        max_masked_viewpoint = {'dir': 0, 'theta': 0, 'phi': 0, 'radius': 0}
+        max_mask_size = 0
+
+        for idx in range(start_count, end_count):
+            data = self.dataloaders['rand'][idx]
+
+            dir = data['dir']
+            theta = data['theta']
+            phi = data['phi']
+            radius = data['radius']
+
+            mask_size = self.calculate_mask_size(theta, phi, radius)
+
+            if max_mask_size < mask_size:
+                max_masked_viewpoint['dir'] = dir
+                max_masked_viewpoint['theta'] = theta
+                max_masked_viewpoint['phi'] = phi
+                max_masked_viewpoint['radius'] = radius
+
+                max_mask_size = mask_size
+        
+        return max_masked_viewpoint
 
     def paint_viewpoint(self, data: Dict[str, Any]):
         logger.info(f'--- Painting step #{self.paint_step} ---')

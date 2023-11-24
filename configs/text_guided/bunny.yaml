@@ -4,5 +4,6 @@ guide:
   text: "A white bunny, {} view"
   append_direction: True
   shape_path: shapes/bunny.obj
+  use_random_viewpoint: True
 optim:
   seed: 3
