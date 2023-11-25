@@ -68,7 +68,6 @@
 /root/.objaverse/hf-objaverse-v1/objs/000-047/51d928b33e5549898cc86cbdaf966d83/guide.yaml
 /root/.objaverse/hf-objaverse-v1/objs/000-047/a5971983ab3e4fa6b395e310490ccb9f/guide.yaml
 /root/.objaverse/hf-objaverse-v1/objs/000-011/5d99827c456940bf9055dfe2dbc561e8/guide.yaml
-/root/.objaverse/hf-objaverse-v1/objs/000-093/1702f71e798b4cc794ec12f8219405b9/guide.yaml
 /root/.objaverse/hf-objaverse-v1/objs/000-151/d8072e417dbd476cadb270e39ad3d7c8/guide.yaml
 /root/.objaverse/hf-objaverse-v1/objs/000-068/7d8682b03038465c96b3479a0368ec9a/guide.yaml
 /root/.objaverse/hf-objaverse-v1/objs/000-013/885f1fe05f924bd995a89cfc3b6fe8a9/guide.yaml
