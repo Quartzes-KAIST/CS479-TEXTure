@@ -10,3 +10,4 @@ logs/*
 TOKEN
 experiments/
 cache/
+*.out
