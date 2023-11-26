@@ -89,7 +89,7 @@ def render_qualitative_results():
 
 		os.makedirs(gif_dir, exist_ok=True)
 
-		for i in range(0,18):
+		for i in range(0,36):
 			scene.vertices = np.dot(scene.vertices, trimesh.transformations.rotation_matrix(10 * (math.pi / 180), direction=[0, 1, 0], point=center)[:3, :3])
 			png = scene.scene().save_image(resolution=[1920, 1080], visible=True, window_conf=window_conf)
 
@@ -113,7 +113,7 @@ def render_quantitative_results():
 		scene.vertices = np.dot(scene.vertices - scene.centroid, trimesh.transformations.rotation_matrix(90 * (math.pi / 180), direction=[0, 1, 0], point=[0, 0, 0])[:3, :3])
 		center = scene.bounds.mean(axis=0)
 
-		for i in range(0,18):
+		for i in range(0,36):
 			scene.vertices = np.dot(scene.vertices, trimesh.transformations.rotation_matrix(10 * (math.pi / 180), direction=[0, 1, 0], point=center)[:3, :3])
 			png = scene.scene().save_image(resolution=[500, 500], visible=True, window_conf=window_conf)
 
