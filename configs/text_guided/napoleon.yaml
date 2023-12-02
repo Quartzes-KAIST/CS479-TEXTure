@@ -4,5 +4,6 @@ guide:
   text: "A photo of Napoleon Bonaparte, {} view"
   append_direction: True
   shape_path: shapes/napoleon.obj
+  use_random_viewpoint: False
 optim:
   seed: 3

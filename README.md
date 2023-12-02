@@ -1,11 +1,6 @@
-# TEXTure: Text-Guided Texturing of 3D Shapes
+# Improving Run-Time Performance of TEXTure Method
 
-
-
-https://user-images.githubusercontent.com/14039317/216840512-e83f71cf-beb0-4450-bad8-cd84399197ce.mp4
-
-
-## [[Project Page]](https://texturepaper.github.io/TEXTurePaper/)
+## [[Baseline Method: Project Page]](https://texturepaper.github.io/TEXTurePaper/)
 
 <a href="https://arxiv.org/abs/2302.01721"><img src="https://img.shields.io/badge/arXiv-2302.01721-b31b1b.svg" height=22.5></a>
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height=22.5></a>  [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/TEXTurePaper/TEXTure)
@@ -69,14 +64,29 @@ python -m scripts.run_texture --config_path=configs/text_guided/nascar.yaml
 ```
 
 
-### Texture Transfer from Meshes
-Documentation coming soon
+## Difference Between Original Method
 
-### Texture Transfer from Images
-Documentation coming soon
+### New Option: Using Random Viewpoint
 
-### Texture Refinement
-Documentation coming soon
+To boost-up run-time performance of TEXTure method, we add a new option which uses random viewpoint during the geneartion process. With option, you can boost-up speed about 20%.
 
-### Texture Editing
-Documentation coming soon
+### How to use
+
+Just add option use_random_viewpoint to the text guided .yaml file.
+
+```yaml
+guide:
+  use_random_viewpoint: True
+```
+
+For convenience, bunny object is provided with random viewpoint option.
+
+```bash
+python -m scripts.run_texture --config_path=configs/text_guided/bunny.yaml
+```
+
+Or you can use cat instead of bunny.
+
+```bash
+python -m scripts.run_texture --config_path=configs/text_guided/cat.yaml
+```
